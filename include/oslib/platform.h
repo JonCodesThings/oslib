@@ -21,8 +21,6 @@ typedef unsigned long long u64;
 
 typedef float f32;
 typedef double f64;
-
-typedef bool b8;
 #endif
 #endif
 

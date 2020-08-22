@@ -27,7 +27,13 @@ void *OSLIB_GetFunctionPointer(OSLIB_HotReloadLibrary *const lib, const char *fu
 {
 	//TODO: @Jon
 	//Make sure that lib.library != NULL
-	return GetProcAddress(lib.library, functionName);
+	if (lib == NULL)
+		return NULL;
+
+	if (lib->library == NULL)
+		return NULL;
+
+	return GetProcAddress(lib->library, functionName);
 }
 
 i32 OSLIB_HotReload(OSLIB_HotReloadLibrary * const lib)
@@ -35,13 +41,13 @@ i32 OSLIB_HotReload(OSLIB_HotReloadLibrary * const lib)
 	FILETIME prev = lib->lastWrite;
 
 	WIN32_FILE_ATTRIBUTE_DATA Data;
-	if (GetFileAttributesEx(Filename, GetFileExInfoStandard, &Data))
+	if (GetFileAttributesEx(lib->libraryName, GetFileExInfoStandard, &Data))
 		lib->lastWrite = Data.ftLastWriteTime;
 
-	if (prev == lib->lastWrite)
+	if (prev.dwHighDateTime == lib->lastWrite.dwHighDateTime && prev.dwLowDateTime == lib->lastWrite.dwLowDateTime)
 		return 0;
 
-	UnloadLibrary(lib->library);
+	FreeLibrary(lib->library);
 	OSLIB_LoadLibrary(lib, lib->libraryName);
 
 	return 0;
