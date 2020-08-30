@@ -3,6 +3,6 @@
 
 #include <include/oslib/platform.h>
 
-i32 ReadAllTextFromFile(const char *filepath, char *buffer, i32 bufferSize);
+i32 OSLIB_ReadAllBytesFromFile(const char *filepath, i8 *buffer, i32 bufferSize);
 
 #endif

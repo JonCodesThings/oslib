@@ -9,18 +9,23 @@ typedef struct OSLIB_HotReloadLibrary
 {
 	HMODULE library;
 	FILETIME lastWrite;
-	const char *libraryName;
+	const char *libraryFilename;
 } OSLIB_HotReloadLibrary;
 
-i32 OSLIB_LoadLibrary(OSLIB_HotReloadLibrary *const lib, const char *libraryName)
+i32 OSLIB_LoadLibrary(OSLIB_HotReloadLibrary *const lib, const char *libraryFilename)
 {
-	lib->library = LoadLibrary(libraryName);
-	lib->libraryName = libraryName;
+	lib->library = LoadLibrary(libraryFilename);
+	lib->libraryFilename = libraryFilename;
 
 	if (lib->library != NULL)
 		return 0;
 
 	return 1;
+}
+
+void OSLIB_FreeLibrary(OSLIB_HotReloadLibrary *const lib)
+{
+	FreeLibrary(lib->library);
 }
 
 void *OSLIB_GetFunctionPointer(OSLIB_HotReloadLibrary *const lib, const char *functionName)
@@ -41,14 +46,15 @@ i32 OSLIB_HotReload(OSLIB_HotReloadLibrary * const lib)
 	FILETIME prev = lib->lastWrite;
 
 	WIN32_FILE_ATTRIBUTE_DATA Data;
-	if (GetFileAttributesEx(lib->libraryName, GetFileExInfoStandard, &Data))
+	if (GetFileAttributesEx(lib->libraryFilename, GetFileExInfoStandard, &Data))
 		lib->lastWrite = Data.ftLastWriteTime;
 
 	if (prev.dwHighDateTime == lib->lastWrite.dwHighDateTime && prev.dwLowDateTime == lib->lastWrite.dwLowDateTime)
+	{
+		OSLIB_FreeLibrary(lib);
+		OSLIB_LoadLibrary(lib, lib->libraryFilename);
 		return 0;
-
-	FreeLibrary(lib->library);
-	OSLIB_LoadLibrary(lib, lib->libraryName);
+	}
 
 	return 0;
 }

@@ -1,0 +1,17 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x64-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [
+        "msvc_x64_x64"
+      ],
+      "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
+      "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+      "cmakeCommandArgs": "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY:string=C:\\Users\\ipodb\\Documents\\GitHub\\cpong -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY:string=C:\\Users\\ipodb\\Documents\\GitHub\\cpong -DCMAKE_RUNTIME_OUTPUT_DIRECTORY:string=C:\\Users\\ipodb\\Documents\\GitHub\\cpong",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": ""
+    }
+  ]
+}
