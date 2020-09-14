@@ -5,7 +5,15 @@
 
 typedef struct OSLIB_HotReloadLibrary OSLIB_HotReloadLibrary;
 
+OSLIB_HotReloadLibrary * OSLIB_CreateHotReloadLibrary(const char *libraryFilename);
+
+void OSLIB_FreeHotReloadLibrary(OSLIB_HotReloadLibrary *const lib);
+
 i32 OSLIB_LoadLibrary(OSLIB_HotReloadLibrary * const lib);
+
+void OSLIB_FreeLibrary(OSLIB_HotReloadLibrary *const lib);
+
+void OSLIB_UnloadLibrary(OSLIB_HotReloadLibrary * const lib);
 
 void *OSLIB_GetFunctionPointer(OSLIB_HotReloadLibrary *const lib, const char *functionName);
 

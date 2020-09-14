@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-void Hello()
+__declspec(dllexport) void Hello()
 {
 	printf("Hello!\n");
 }
