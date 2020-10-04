@@ -17,6 +17,8 @@ OSLIB_HotReloadLibrary * OSLIB_CreateHotReloadLibrary(const char *libraryFilenam
 	OSLIB_HotReloadLibrary *alloc = Allocate(sizeof(OSLIB_HotReloadLibrary));
 
 	alloc->libraryFilename = libraryFilename;
+
+	return alloc;
 }
 
 void OSLIB_FreeHotReloadLibrary(OSLIB_HotReloadLibrary *const lib)

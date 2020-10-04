@@ -9,7 +9,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set(SOURCE_FILES
 		src/platform.c
 		src/win32/hot_reload.c
-		src/win32/io.c)
+		src/win32/io.c
+		src/win32/timer.c)
 endif()
 
 set (OSLIB_IO_EXAMPLE_SOURCE_FILES sandbox/io/oslib_io.c)

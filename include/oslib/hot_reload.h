@@ -13,8 +13,6 @@ i32 OSLIB_LoadLibrary(OSLIB_HotReloadLibrary * const lib);
 
 void OSLIB_FreeLibrary(OSLIB_HotReloadLibrary *const lib);
 
-void OSLIB_UnloadLibrary(OSLIB_HotReloadLibrary * const lib);
-
 void *OSLIB_GetFunctionPointer(OSLIB_HotReloadLibrary *const lib, const char *functionName);
 
 i32 OSLIB_HotReload(OSLIB_HotReloadLibrary * const lib);
