@@ -35,7 +35,7 @@ f32 OSLIB_TimerReset(OSLIB_Timer *timer)
 
 	u32 diff = (u32) (current.QuadPart - timer->lastTimeStamp.QuadPart);
 
-	f32 diffSeconds = (f32) (diff / OSLIB_TimerFrequency.QuadPart);
+	float diffSeconds = (float) (diff / (OSLIB_TimerFrequency.QuadPart / 1000));
 
 	timer->lastTimeStamp = current;
 

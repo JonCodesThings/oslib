@@ -3,6 +3,18 @@
 
 #include <include/oslib/platform.h>
 
-i32 OSLIB_ReadAllBytesFromFile(const char *filepath, i8 *buffer, i32 bufferSize);
+i32 OSLIB_ReadBytesFromFile(const char *filepath, i8 *buffer, i32 bufferSize);
+
+i32 OSLIB_GetDirectoryFileCount(const char *filepath);
+
+i32 OSLIB_GetDirectoryFileCountWithExtension(const char *filepath, const char *extension);
+
+i32 OSLIB_GetFileSize(const char *filepath);
+
+i32 OSLIB_WriteBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize);
+
+i32 OSLIB_AppendBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize);
+
+char ** OSLIB_GetFilesWithExtensionInDirectory(const char *filepath, const char *extension);
 
 #endif
