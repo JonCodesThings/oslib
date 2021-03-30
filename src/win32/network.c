@@ -45,19 +45,19 @@ void CloseNetwork()
 	WSACleanup();
 }
 
-static u32 GetHeadersTotalLength(OSLIB_HTTPRequestHeader* h)
+static u32 GetHeadersTotalLength(const OSLIB_HTTPRequestHeader * h)
 {
 	u32 len = 0;
 	while (h != NULL)
 	{
 		//const char *header = h->header + ": " + h->value;
 		len += strlen(h->header) + 2 + strlen(h->value);
-		h++;
+		h = h->next;
 	}
 	return len;
 }
 
-static void BuildHTTPRequest(OSLIB_HTTPRequest *request)
+static u32 GetHTTPRequestStringLength(const OSLIB_HTTPRequest *const request)
 {
 	u32 stringLen = 0;
 
@@ -80,7 +80,7 @@ static void BuildHTTPRequest(OSLIB_HTTPRequest *request)
 		stringLen += 7;
 		break;
 	}
-	
+
 	// Increment stringLen with the length of the location string + any other request line stuff
 	stringLen += strlen(request->location) + 11;
 
@@ -90,19 +90,90 @@ static void BuildHTTPRequest(OSLIB_HTTPRequest *request)
 	// Increement stringLen with the request body data + the new line characters;
 	stringLen += strlen(request->body) + 2;
 
-	//const char *requestLine = "GET" + request->location + "HTTP/1.1\r\n";
+	return stringLen;
+}
 
-	if (request->headers == NULL)
-		return;
-	OSLIB_HTTPRequestHeader *h = request->headers;
+static const char* GetHTTPRequestMethod(const OSLIB_HTTPRequest* const request)
+{
+	switch (request->method)
+	{
+	default:
+		return "";
+		break;
+	case GET:
+		return "GET";
+	case PUT:
+		return "PUT";
+	case POST:
+		return "POST";
+	case PATCH:
+		return "PATCH";
+	case CONNECT:
+		return "CONNECT";
+	}
+}
+
+static void AppendHeaders(char* string, u32 *currentIndex, const OSLIB_HTTPRequestHeader* h)
+{
+	const char * colon = ": ";
 	while (h != NULL)
 	{
-		//const char *header = h->header + ": " + h->value;
-		h++;
+		u32 headerLen = strlen(h->header);
+		u32 valueLen = strlen(h->value);
+		memcpy(&string[*currentIndex], h->header, sizeof(char) * headerLen);
+		*currentIndex += headerLen;
+		memcpy(&string[*currentIndex], colon, sizeof(char) * 2);
+		*currentIndex += 2;
+		memcpy(&string[*currentIndex], h->value, sizeof(char) * valueLen);
+		*currentIndex += valueLen;
+		h = h->next;
 	}
-	//const char *newline = "\r\n";
-	//const char *emptyline = "\r\n";
-	//const char *body = request->body + "\r\n";
+}
+
+static const char * BuildHTTPRequest(const OSLIB_HTTPRequest *const request)
+{
+	u32 stringLen = GetHTTPRequestStringLength(request);
+
+	char *requestString = Allocate(sizeof(char) * stringLen + 1);
+	requestString[stringLen] = '\0';
+
+	u32 current = 0;
+
+	const char *method = GetHTTPRequestMethod(request);
+	u32 methodLen = strlen(method);
+
+	memcpy(&requestString[current], method, sizeof(char) * methodLen);
+	current += methodLen;
+
+	methodLen = strlen(request->location);
+	memcpy(&requestString[current], request->location, sizeof(char) * methodLen);
+	current += methodLen;
+
+	const char *http = "HTTP/1.1";
+	methodLen = strlen(http);
+	const char *newlineChars = "\r\n";
+	memcpy(&requestString[current], http, sizeof(char) * methodLen);
+	current += methodLen;
+
+	memcpy(&requestString[current], newlineChars, sizeof(char) * 2);
+	current += 2;
+
+	AppendHeaders(requestString, current, request->headers);
+
+	memcpy(&requestString[current], newlineChars, sizeof(char) * 2);
+	current += 2;
+
+	memcpy(&requestString[current], newlineChars, sizeof(char) * 2);
+	current += 2;
+
+	methodLen = strlen(request->body);
+	memcpy(&requestString[current], request->body, sizeof(char) * methodLen);
+	current += methodLen;
+
+	memcpy(&requestString[current], newlineChars, sizeof(char) * 2);
+	current += 2;
+
+	return requestString;
 }
 
 OSLIB_NetworkAddress *ConfigureNetworkAddress(const char *location, const char *port)
