@@ -130,6 +130,12 @@ static void AppendHeaders(char* string, u32 *currentIndex, const OSLIB_HTTPReque
 	}
 }
 
+static void CopyToString(char* buffer, u32 *current, const char* copy, const u32 size)
+{
+	memcpy(&buffer[*current], copy, sizeof(char) * size);
+	*current += size;
+}
+
 static const char * BuildHTTPRequest(const OSLIB_HTTPRequest *const request)
 {
 	u32 stringLen = GetHTTPRequestStringLength(request);
@@ -142,36 +148,29 @@ static const char * BuildHTTPRequest(const OSLIB_HTTPRequest *const request)
 	const char *method = GetHTTPRequestMethod(request);
 	u32 methodLen = strlen(method);
 
-	memcpy(&requestString[current], method, sizeof(char) * methodLen);
-	current += methodLen;
+	CopyToString(requestString, &current, method, methodLen);
 
 	methodLen = strlen(request->location);
-	memcpy(&requestString[current], request->location, sizeof(char) * methodLen);
-	current += methodLen;
+	CopyToString(requestString, &current, request->location, methodLen);
 
 	const char *http = "HTTP/1.1";
 	methodLen = strlen(http);
-	const char *newlineChars = "\r\n";
-	memcpy(&requestString[current], http, sizeof(char) * methodLen);
-	current += methodLen;
+	CopyToString(requestString, &current, http, methodLen);
 
-	memcpy(&requestString[current], newlineChars, sizeof(char) * 2);
-	current += 2;
+	const char *newlineChars = "\r\n";
+
+	CopyToString(requestString, &current, newlineChars, 2);
 
 	AppendHeaders(requestString, current, request->headers);
 
-	memcpy(&requestString[current], newlineChars, sizeof(char) * 2);
-	current += 2;
+	CopyToString(requestString, &current, newlineChars, 2);
 
-	memcpy(&requestString[current], newlineChars, sizeof(char) * 2);
-	current += 2;
+	CopyToString(requestString, &current, newlineChars, 2);
 
 	methodLen = strlen(request->body);
-	memcpy(&requestString[current], request->body, sizeof(char) * methodLen);
-	current += methodLen;
+	CopyToString(requestString, &current, request->body, methodLen);
 
-	memcpy(&requestString[current], newlineChars, sizeof(char) * 2);
-	current += 2;
+	CopyToString(requestString, &current, newlineChars, 2);
 
 	return requestString;
 }
