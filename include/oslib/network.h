@@ -14,11 +14,12 @@ struct OSLIB_HTTPResponse;
 enum OSLIB_HTTPRequestMethod
 {
 	NONE = 0,
-	GET,
-	POST,
-	PUT,
-	CONNECT,
-	PATCH
+	HTTP_GET,
+	HTTP_POST,
+	HTTP_PUT,
+	HTTP_DELETE,
+	HTTP_CONNECT,
+	HTTP_PATCH
 };
 
 void InitNetwork();

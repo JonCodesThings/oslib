@@ -34,6 +34,14 @@ typedef struct OSLIB_HTTPRequest
 	OSLIB_HTTPRequestHeader *headers;
 } OSLIB_HTTPRequest;
 
+typedef struct OSLIB_HTTPResponse
+{
+	i32 responseCode;
+	const char *responseString;
+	OSLIB_HTTPRequestHeader *headers;
+	const char *messageBody;
+} OSLIB_HTTPResponse;
+
 void InitNetwork()
 {
 	WSADATA wsaData;
@@ -66,17 +74,19 @@ static u32 GetHTTPRequestStringLength(const OSLIB_HTTPRequest *const request)
 	{
 	default:
 		break;
-	case GET:
-	case PUT:
+	case HTTP_GET:
+	case HTTP_PUT:
 		stringLen += 3;
 		break;
-	case POST:
+	case HTTP_POST:
 		stringLen += 4;
 		break;
-	case PATCH:
+	case HTTP_PATCH:
 		stringLen += 5;
 		break;
-	case CONNECT:
+	case HTTP_DELETE:
+		stringLen += 6;
+	case HTTP_CONNECT:
 		stringLen += 7;
 		break;
 	}
@@ -100,16 +110,18 @@ static const char* GetHTTPRequestMethod(const OSLIB_HTTPRequest* const request)
 	default:
 		return "";
 		break;
-	case GET:
+	case HTTP_GET:
 		return "GET";
-	case PUT:
+	case HTTP_PUT:
 		return "PUT";
-	case POST:
+	case HTTP_POST:
 		return "POST";
-	case PATCH:
+	case HTTP_PATCH:
 		return "PATCH";
-	case CONNECT:
+	case HTTP_CONNECT:
 		return "CONNECT";
+	case HTTP_DELETE:
+		return "DELETE";
 	}
 }
 
@@ -173,6 +185,12 @@ static const char * BuildHTTPRequest(const OSLIB_HTTPRequest *const request)
 	CopyToString(requestString, &current, newlineChars, 2);
 
 	return requestString;
+}
+
+void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
+{
+	if (responseData[0] != 'H' || responseData[1] != 'T' || responseData[2] != 'T' || responseData[3] != 'P')
+		return;
 }
 
 OSLIB_NetworkAddress *ConfigureNetworkAddress(const char *location, const char *port)
