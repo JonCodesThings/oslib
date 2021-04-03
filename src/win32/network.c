@@ -19,28 +19,41 @@ typedef struct OSLIB_NetworkAddress
 	struct sockaddr_in *in;
 } OSLIB_NetworkAddress;
 
-typedef struct OSLIB_HTTPRequestHeader
+typedef struct OSLIB_HTTPHeader
 {
 	const char *header;
 	const char *value;
-	struct OSLIB_HTTPRequestHeader *next;
-} OSLIB_HTTPRequestHeader;
+	struct OSLIB_HTTPHeader *next;
+} OSLIB_HTTPHeader;
 
 typedef struct OSLIB_HTTPRequest
 {
 	const char *location;
 	const char *body;
 	enum OSLIB_HTTPRequestMethod method;
-	OSLIB_HTTPRequestHeader *headers;
+	OSLIB_HTTPHeader *headers;
 } OSLIB_HTTPRequest;
 
 typedef struct OSLIB_HTTPResponse
 {
 	i32 responseCode;
 	const char *responseString;
-	OSLIB_HTTPRequestHeader *headers;
+	OSLIB_HTTPHeader *headers;
 	const char *messageBody;
 } OSLIB_HTTPResponse;
+
+static enum HTTP_TOKENS
+{
+	HTTP,
+	HTTP_VERSION,
+	HTTP_RESPONSE_CODE,
+	HTTP_RESPONSE_STRING,
+	HEADER,
+	COLON,
+	HEADER_VALUE,
+	BODY,
+	SEPERATOR
+};
 
 void InitNetwork()
 {
@@ -53,7 +66,7 @@ void CloseNetwork()
 	WSACleanup();
 }
 
-static u32 GetHeadersTotalLength(const OSLIB_HTTPRequestHeader * h)
+static u32 GetHeadersTotalLength(const OSLIB_HTTPHeader * h)
 {
 	u32 len = 0;
 	while (h != NULL)
@@ -125,7 +138,7 @@ static const char* GetHTTPRequestMethod(const OSLIB_HTTPRequest* const request)
 	}
 }
 
-static void AppendHeaders(char* string, u32 *currentIndex, const OSLIB_HTTPRequestHeader* h)
+static void AppendHeaders(char* string, u32 *currentIndex, const OSLIB_HTTPHeader* h)
 {
 	const char * colon = ": ";
 	while (h != NULL)
@@ -191,6 +204,104 @@ void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
 {
 	if (responseData[0] != 'H' || responseData[1] != 'T' || responseData[2] != 'T' || responseData[3] != 'P')
 		return;
+
+	response->messageBody = NULL;
+	response->responseCode = 0;
+	response->responseString = NULL;
+	response->headers = NULL;
+
+	u32 responseDataLen = strlen(responseData);
+	char accum[32];
+	u32 accumIndex = 0;
+	enum HTTP_TOKENS prev;
+	OSLIB_HTTPHeader *currentHeader = NULL;
+	for (u32 i = 0; i < responseDataLen; ++i)
+	{
+		accum[accumIndex++] = responseData[i];
+		accum[accumIndex] = '\0';
+
+		if (!strcmp(accum, "\r\n"))
+		{
+			accumIndex = 0;
+			prev = SEPERATOR;
+		}
+
+		if (!strcmp(accum, "HTTP"))
+		{
+			accumIndex = 0;
+			prev = HTTP;
+			continue;
+		}
+
+		if (accumIndex == 1 && accum[accumIndex - 1] == '/' && prev == HTTP)
+		{
+			accumIndex = 0;
+			continue;
+		}
+
+		if (accumIndex > 0)
+		{
+			if (accum[accumIndex - 1] == ' ' || accum[accumIndex - 1] == '\r\n')
+			{
+				u32 strl = strlen(accum);
+				char *buff = NULL;
+				switch (prev)
+				{
+				default:
+					accumIndex = 0;
+					break;
+				case HTTP:
+					prev = HTTP_VERSION;
+					break;
+				case HTTP_VERSION:
+					response->responseCode = atoi(accum);
+					prev = HTTP_RESPONSE_CODE;
+					accumIndex = 0;
+					break;
+				case HTTP_RESPONSE_CODE:
+					u32 responseStrLen = strlen(accum);
+					buff = Allocate(sizeof(char) * responseStrLen);
+					buff[responseStrLen] = '\0';
+					memcpy(buff, responseStrLen, sizeof(char) * responseStrLen);
+					response->responseString = buff;
+					prev = HTTP_RESPONSE_STRING;
+					break;
+				case HEADER:
+					if (!strcmp(accum, ":"))
+						prev = COLON;
+					break;
+				case COLON:
+					buff = Allocate(sizeof(char) * strl);
+					memcpy(buff, accum, sizeof(char) * strl);
+					currentHeader->value = buff;
+					break;
+					break;
+				case SEPERATOR:
+					if (response->headers != NULL)
+					{
+						buff = Allocate(sizeof(char) * strl);
+						memcpy(buff, accum, sizeof(char) * strl);
+						response->messageBody = buff;
+						break;
+					}
+				case HEADER_VALUE:
+					if (response->responseCode == 0)
+						break;
+					OSLIB_HTTPHeader *header = Allocate(sizeof(OSLIB_HTTPHeader));
+					header->next = NULL;
+					buff = Allocate(sizeof(char) * strl);
+					memcpy(buff, accum, sizeof(char) * strl);
+					header->header = buff;
+					prev = HEADER;
+					currentHeader->next = header;
+					currentHeader = header;
+					if (response->headers == NULL)
+						response->headers = header;
+					break;					
+				}
+			}
+		}
+	}
 }
 
 OSLIB_NetworkAddress *ConfigureNetworkAddress(const char *location, const char *port)
