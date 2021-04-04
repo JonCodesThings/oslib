@@ -5,6 +5,12 @@
 
 struct OSLIB_Socket;
 
+enum OSLIB_SocketProtocol
+{
+	TCP,
+	UDP
+};
+
 struct OSLIB_NetworkAddress;
 
 struct OSLIB_HTTPRequest;
@@ -22,13 +28,9 @@ enum OSLIB_HTTPRequestMethod
 	HTTP_PATCH
 };
 
-void InitNetwork();
-
-void CloseNetwork();
-
 struct OSLIB_NetworkAddress *ConfigureNetworkAddress(const char *location, const char *port);
 
-struct OSLIB_Socket *CreateSocket();
+struct OSLIB_Socket *CreateSocket(enum OSLIB_SocketProtocol protocol);
 
 void BindSocket(struct OSLIB_Socket* sock, struct OSLIB_NetworkAddress *addr);
 
@@ -43,5 +45,17 @@ i32 ReceiveData(struct OSLIB_Socket *sock, u8 *buffer, u32 bufferSize);
 i32 ReceiveDataFrom(struct OSLIB_Socket *sock, u8 *buffer, u32 bufferSize);
 
 void CloseSocket(struct OSLIB_Socket* sock);
+
+struct OSLIB_HTTPRequest *BuildHTTPRequest(enum OSLIB_HTTPRequestMethod method, const char *location, const char *body);
+
+void AddHTTPHeader(struct OSLIB_HTTPRequest * const request, const char* header, const char* value);
+
+void SendHTTPRequest(struct OSLIB_Socket* socket, struct OSLIB_NetworkAddress* addr, struct OSLIB_HTTPRequest* request);
+
+struct OSLIB_HTTPResponse *AlocateHTTPResponseStructure();
+
+void ParseHTTPResponse(const char* responseData, struct OSLIB_HTTPResponse *response);
+
+void PrintHTTPResponseData(const struct OSLIB_HTTPResponse *response);
 
 #endif

@@ -12,11 +12,13 @@ typedef struct OSLIB_Socket
 {
 	SOCKET winsocket;
 	bool blocking;
+	enum OSLIB_SocketProtocol protocol;
 } OSLIB_Socket;
 
 typedef struct OSLIB_NetworkAddress
 {
 	struct sockaddr_in *in;
+	struct addrinfo *info;
 } OSLIB_NetworkAddress;
 
 typedef struct OSLIB_HTTPHeader
@@ -42,8 +44,9 @@ typedef struct OSLIB_HTTPResponse
 	const char *messageBody;
 } OSLIB_HTTPResponse;
 
-static enum HTTP_TOKENS
+enum HTTP_TOKENS
 {
+	HTTP_TOKEN_NONE,
 	HTTP,
 	HTTP_VERSION,
 	HTTP_RESPONSE_CODE,
@@ -52,16 +55,19 @@ static enum HTTP_TOKENS
 	COLON,
 	HEADER_VALUE,
 	BODY,
-	SEPERATOR
+	SEPARATOR,
+	DOUBLE_SEPARATOR
 };
 
-void InitNetwork()
+static bool networkInit = false;
+
+static void InitNetwork()
 {
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2,0), &wsaData);
 }
 
-void CloseNetwork()
+static void CloseNetwork()
 {
 	WSACleanup();
 }
@@ -72,7 +78,7 @@ static u32 GetHeadersTotalLength(const OSLIB_HTTPHeader * h)
 	while (h != NULL)
 	{
 		//const char *header = h->header + ": " + h->value;
-		len += strlen(h->header) + 2 + strlen(h->value);
+		len += (u32)strlen(h->header) + 2 + (u32)strlen(h->value);
 		h = h->next;
 	}
 	return len;
@@ -89,29 +95,29 @@ static u32 GetHTTPRequestStringLength(const OSLIB_HTTPRequest *const request)
 		break;
 	case HTTP_GET:
 	case HTTP_PUT:
-		stringLen += 3;
-		break;
-	case HTTP_POST:
 		stringLen += 4;
 		break;
-	case HTTP_PATCH:
+	case HTTP_POST:
 		stringLen += 5;
 		break;
-	case HTTP_DELETE:
+	case HTTP_PATCH:
 		stringLen += 6;
-	case HTTP_CONNECT:
+		break;
+	case HTTP_DELETE:
 		stringLen += 7;
+	case HTTP_CONNECT:
+		stringLen += 8;
 		break;
 	}
 
 	// Increment stringLen with the length of the location string + any other request line stuff
-	stringLen += strlen(request->location) + 11;
+	stringLen += (u32)strlen(request->location) + 11;
 
 	// Increment stringLen with the headers total length + the empty line data
 	stringLen += GetHeadersTotalLength(request->headers) + 4;
 
 	// Increement stringLen with the request body data + the new line characters;
-	stringLen += strlen(request->body) + 2;
+	stringLen += (u32)strlen(request->body) + 2;
 
 	return stringLen;
 }
@@ -124,17 +130,17 @@ static const char* GetHTTPRequestMethod(const OSLIB_HTTPRequest* const request)
 		return "";
 		break;
 	case HTTP_GET:
-		return "GET";
+		return "GET ";
 	case HTTP_PUT:
-		return "PUT";
+		return "PUT ";
 	case HTTP_POST:
-		return "POST";
+		return "POST ";
 	case HTTP_PATCH:
-		return "PATCH";
+		return "PATCH ";
 	case HTTP_CONNECT:
-		return "CONNECT";
+		return "CONNECT ";
 	case HTTP_DELETE:
-		return "DELETE";
+		return "DELETE ";
 	}
 }
 
@@ -143,8 +149,8 @@ static void AppendHeaders(char* string, u32 *currentIndex, const OSLIB_HTTPHeade
 	const char * colon = ": ";
 	while (h != NULL)
 	{
-		u32 headerLen = strlen(h->header);
-		u32 valueLen = strlen(h->value);
+		u32 headerLen = (u32)strlen(h->header);
+		u32 valueLen = (u32)strlen(h->value);
 		memcpy(&string[*currentIndex], h->header, sizeof(char) * headerLen);
 		*currentIndex += headerLen;
 		memcpy(&string[*currentIndex], colon, sizeof(char) * 2);
@@ -161,7 +167,7 @@ static void CopyToString(char* buffer, u32 *current, const char* copy, const u32
 	*current += size;
 }
 
-static const char * BuildHTTPRequest(const OSLIB_HTTPRequest *const request)
+static const char * BuildHTTPRequestString(const OSLIB_HTTPRequest *const request)
 {
 	u32 stringLen = GetHTTPRequestStringLength(request);
 
@@ -171,33 +177,71 @@ static const char * BuildHTTPRequest(const OSLIB_HTTPRequest *const request)
 	u32 current = 0;
 
 	const char *method = GetHTTPRequestMethod(request);
-	u32 methodLen = strlen(method);
+	u32 methodLen = (u32)strlen(method);
 
 	CopyToString(requestString, &current, method, methodLen);
 
-	methodLen = strlen(request->location);
+	methodLen = (u32)strlen(request->location);
 	CopyToString(requestString, &current, request->location, methodLen);
 
-	const char *http = "HTTP/1.1";
-	methodLen = strlen(http);
+	const char *http = " HTTP/1.1";
+	methodLen = (u32)strlen(http);
 	CopyToString(requestString, &current, http, methodLen);
 
 	const char *newlineChars = "\r\n";
 
 	CopyToString(requestString, &current, newlineChars, 2);
 
-	AppendHeaders(requestString, current, request->headers);
+	AppendHeaders(requestString, &current, request->headers);
 
 	CopyToString(requestString, &current, newlineChars, 2);
 
 	CopyToString(requestString, &current, newlineChars, 2);
 
-	methodLen = strlen(request->body);
+	methodLen = (u32)strlen(request->body);
 	CopyToString(requestString, &current, request->body, methodLen);
 
 	CopyToString(requestString, &current, newlineChars, 2);
 
 	return requestString;
+}
+
+OSLIB_HTTPRequest *BuildHTTPRequest(enum OSLIB_HTTPRequestMethod method, const char *location, const char *body)
+{
+	OSLIB_HTTPRequest *request = Allocate(sizeof(OSLIB_HTTPRequest));
+	request->method = method;
+	request->location = location;
+	request->body = body;
+	request->headers = NULL;
+}
+
+void AddHTTPHeader(OSLIB_HTTPRequest * const request, const char* header, const char* value)
+{
+	OSLIB_HTTPHeader *h = Allocate(sizeof(OSLIB_HTTPHeader));
+	h->header = header;
+	h->value = value;
+	h->next = NULL;
+	if (request->headers == NULL)
+	{
+		request->headers = h;
+		return;
+	}
+	OSLIB_HTTPHeader *existing = request->headers;
+	while (existing->next != NULL)
+		existing = existing->next;
+	existing->next = h;
+}
+
+void SendHTTPRequest(OSLIB_Socket* socket, OSLIB_NetworkAddress* addr, OSLIB_HTTPRequest* request)
+{
+	const char *req = BuildHTTPRequestString(request);
+	u32 len = (u32)strlen(req);
+	SendDataTo(socket, req, sizeof(char) * len, addr);
+}
+
+OSLIB_HTTPResponse *AlocateHTTPResponseStructure()
+{
+	return Allocate(sizeof(OSLIB_HTTPResponse));
 }
 
 void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
@@ -211,9 +255,9 @@ void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
 	response->headers = NULL;
 
 	u32 responseDataLen = strlen(responseData);
-	char accum[32];
+	char accum[1024];
 	u32 accumIndex = 0;
-	enum HTTP_TOKENS prev;
+	enum HTTP_TOKENS prev = HTTP_TOKEN_NONE;
 	OSLIB_HTTPHeader *currentHeader = NULL;
 	for (u32 i = 0; i < responseDataLen; ++i)
 	{
@@ -223,7 +267,19 @@ void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
 		if (!strcmp(accum, "\r\n"))
 		{
 			accumIndex = 0;
-			prev = SEPERATOR;
+			if (prev == SEPARATOR)
+			{
+				prev = DOUBLE_SEPARATOR;
+				i++;
+				char *buff = Allocate(sizeof(char) * (responseDataLen - i + 1));
+				memcpy(buff, &responseData[i], sizeof(char) * (responseDataLen - i));
+				buff[responseDataLen - i] = '\0';
+				response->messageBody = buff;
+				break;
+			}
+			else
+				prev = SEPARATOR;
+			continue;
 		}
 
 		if (!strcmp(accum, "HTTP"))
@@ -231,6 +287,11 @@ void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
 			accumIndex = 0;
 			prev = HTTP;
 			continue;
+		}
+
+		if (prev == DOUBLE_SEPARATOR)
+		{
+			
 		}
 
 		if (accumIndex == 1 && accum[accumIndex - 1] == '/' && prev == HTTP)
@@ -241,17 +302,17 @@ void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
 
 		if (accumIndex > 0)
 		{
-			if (accum[accumIndex - 1] == ' ' || accum[accumIndex - 1] == '\r\n')
+			if (accum[accumIndex - 1] == ':' || accum[accumIndex - 1] == ' ' || accum[accumIndex - 1] == '\r'|| accum[accumIndex - 1] == '\n')
 			{
-				u32 strl = strlen(accum);
+				u32 strl = accumIndex - 1;
 				char *buff = NULL;
 				switch (prev)
 				{
 				default:
-					accumIndex = 0;
 					break;
 				case HTTP:
 					prev = HTTP_VERSION;
+					accumIndex = 0;
 					break;
 				case HTTP_VERSION:
 					response->responseCode = atoi(accum);
@@ -259,33 +320,63 @@ void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
 					accumIndex = 0;
 					break;
 				case HTTP_RESPONSE_CODE:
-					u32 responseStrLen = strlen(accum);
-					buff = Allocate(sizeof(char) * responseStrLen);
+					u32 responseStrLen = (u32)strlen(accum) - 1;
+					buff = Allocate(sizeof(char) * responseStrLen + 1);
 					buff[responseStrLen] = '\0';
-					memcpy(buff, responseStrLen, sizeof(char) * responseStrLen);
+					memcpy(buff, accum, sizeof(char) * responseStrLen);
 					response->responseString = buff;
 					prev = HTTP_RESPONSE_STRING;
+					accumIndex = 1;
+					accum[0] = '\r';
 					break;
 				case HEADER:
 					if (!strcmp(accum, ":"))
+					{
 						prev = COLON;
+						accumIndex = 0;
+					}
 					break;
 				case COLON:
+					if (accum[accumIndex - 1] == ' ' || accum[accumIndex - 1] == ':')
+						break;
 					buff = Allocate(sizeof(char) * strl);
 					memcpy(buff, accum, sizeof(char) * strl);
+					buff[strl] = '\0';
 					currentHeader->value = buff;
+					accum[0] = '\r';
+					accumIndex = 1;
+					prev = HEADER_VALUE;
 					break;
+				case DOUBLE_SEPARATOR:
+					buff = Allocate(sizeof(char) * strl);
+					memcpy(buff, accum, sizeof(char) * strl);
+					response->messageBody = buff;
 					break;
-				case SEPERATOR:
-					if (response->headers != NULL)
+				case SEPARATOR:
+					if (accumIndex > 1)
 					{
-						buff = Allocate(sizeof(char) * strl);
-						memcpy(buff, accum, sizeof(char) * strl);
-						response->messageBody = buff;
-						break;
+						OSLIB_HTTPHeader *header = Allocate(sizeof(OSLIB_HTTPHeader));
+						header->next = NULL;
+						prev = HEADER;
+						if (accum[accumIndex - 1] == ':')
+						{
+							buff = Allocate(sizeof(char) * (accumIndex));
+							memcpy(buff, accum, sizeof(char) * (accumIndex - 1));
+							buff[accumIndex - 1] = '\0';
+							i--;
+						}
+						
+						header->header = buff;
+						if (currentHeader != NULL)
+							currentHeader->next = header;
+						currentHeader = header;
+						if (response->headers == NULL)
+							response->headers = header;
+						accumIndex = 0;
 					}
+					break;
 				case HEADER_VALUE:
-					if (response->responseCode == 0)
+					if (response->responseCode == 0 || accum[accumIndex - 1] == '  ')
 						break;
 					OSLIB_HTTPHeader *header = Allocate(sizeof(OSLIB_HTTPHeader));
 					header->next = NULL;
@@ -293,10 +384,11 @@ void ParseHTTPResponse(const char* responseData, OSLIB_HTTPResponse* response)
 					memcpy(buff, accum, sizeof(char) * strl);
 					header->header = buff;
 					prev = HEADER;
-					currentHeader->next = header;
+					if (currentHeader != NULL)
+						currentHeader->next = header;
 					currentHeader = header;
-					if (response->headers == NULL)
-						response->headers = header;
+					accumIndex = 1;
+					accum[0] = '\r';
 					break;					
 				}
 			}
@@ -308,34 +400,59 @@ OSLIB_NetworkAddress *ConfigureNetworkAddress(const char *location, const char *
 {
 	OSLIB_NetworkAddress *addr = Allocate(sizeof(OSLIB_NetworkAddress));
 
-	struct sockaddr_in *hints = Allocate(sizeof(struct sockaddr_in));
+	struct addrinfo *hints = Allocate(sizeof(struct addrinfo));
+	struct addrinfo *i = NULL;
 
-	hints->sin_family = AF_INET;
-	hints->sin_port = htons(port);
-	hints->sin_addr.s_addr = inet_addr(location);
+	ZeroMemory(hints, sizeof(struct addrinfo));
+
+	hints->ai_family = AF_INET;
+	hints->ai_socktype = SOCK_STREAM;
+	hints->ai_protocol = IPPROTO_TCP;
+
+	getaddrinfo(location, port, hints, &i);
+
+	printf("%d\n", WSAGetLastError());
+
+	//hints->sin_port = htons(port);
+	//hints->sin_addr.s_addr = inet_addr(location);
 
 	addr->in = hints;
+	addr->info = i;
 
 	return addr;
 }
 
-OSLIB_Socket *CreateSocket()
+OSLIB_Socket *CreateSocket(enum OSLIB_SocketProtocol protocol)
 {
+	if (!networkInit)
+		InitNetwork();
+
 	OSLIB_Socket *sock = Allocate(sizeof(OSLIB_Socket));
 
 	struct addrinfo hints;
 
 	ZeroMemory(&hints, sizeof(struct addrinfo));
-	hints.ai_protocol = IPPROTO_UDP;
+	switch (protocol)
+	{
+	case TCP:
+		hints.ai_protocol = IPPROTO_TCP;
+		hints.ai_socktype = SOCK_STREAM;
+		break;
+	case UDP:
+		hints.ai_protocol = IPPROTO_UDP;
+		hints.ai_socktype = SOCK_DGRAM;
+		break;
+	}
 	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_DGRAM;
 
 	sock->winsocket = INVALID_SOCKET;
 	sock->winsocket = socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
 	sock->blocking = true;
+	sock->protocol = protocol;
 
 	if (sock->winsocket == INVALID_SOCKET)
 	{
+		printf("%d\n", WSAGetLastError());
 		return NULL;
 	}
 
@@ -386,7 +503,18 @@ i32 ReceiveDataFrom(OSLIB_Socket *sock, u8 *buffer, u32 bufferSize)
 
 i32 SendDataTo(OSLIB_Socket *sock, u8 *buffer, u32 bufferSize, struct OSLIB_NetworkAddress *addr)
 {
-	i32 res = sendto(sock->winsocket, buffer, 1024, 0, addr->in, sizeof(struct sockaddr_in));
+	if (sock->protocol == TCP)
+	{
+		for (struct addrinfo *addrInfo = addr->info; addrInfo != NULL; addrInfo = addrInfo->ai_next)
+		{
+			if (connect(sock->winsocket, addrInfo->ai_addr, addrInfo->ai_addrlen) == 0)
+				break;
+		}
+
+		printf("%d\n", WSAGetLastError());
+	}
+
+	i32 res = sendto(sock->winsocket, buffer, strlen(buffer), 0, addr->in, sizeof(struct sockaddr_in));
 
 	printf("Client: Sending IP(s) used: %s\n", inet_ntoa(addr->in->sin_addr));
 
@@ -394,28 +522,8 @@ i32 SendDataTo(OSLIB_Socket *sock, u8 *buffer, u32 bufferSize, struct OSLIB_Netw
 
 	if (res == SOCKET_ERROR)
 	{
-		i32 i = WSAGetLastError();
-		switch (i)
-		{
-		case WSAETIMEDOUT:
-			return -1;
-		case WSAEHOSTUNREACH:
-			return -2;
-		case WSAEAFNOSUPPORT:
-			return -3;
-		case WSAEADDRNOTAVAIL:
-			return -4;
-		case WSAEDESTADDRREQ:
-			return -5;
-		case WSAENOBUFS:
-			return -6;
-		case WSAENETRESET:
-			return -7;
-		case WSAEINVAL:
-			return -8;
-		default:
-			break;
-		}
+		printf("%d\n", WSAGetLastError());
+
 	}
 
 	return res;
@@ -429,4 +537,18 @@ i32 SendDataToAll(OSLIB_Socket *sock, u8 *buffer, u32 bufferSize)
 void CloseSocket(OSLIB_Socket* sock)
 {
 	closesocket(sock->winsocket);
+}
+
+void PrintHTTPResponseData(const struct OSLIB_HTTPResponse* response)
+{
+	printf("Response Code: %d\nResponse String: %s\n", response->responseCode, response->responseString);
+
+	OSLIB_HTTPHeader *header = response->headers;
+	while (header->next != NULL)
+	{
+		printf("%s:%s\n", header->header, header->value);
+		header = header->next;
+	}
+
+	printf("Response Body:%s\n", response->messageBody);
 }

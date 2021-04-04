@@ -7,9 +7,7 @@
 
 int main()
 {
-	InitNetwork();
-
-	struct OSLIB_Socket *sock = CreateSocket();
+	struct OSLIB_Socket *sock = CreateSocket(UDP);
 
 	struct OSLIB_NetworkAddress *addr = ConfigureNetworkAddress("127.0.0.1", "25565");
 
@@ -30,5 +28,4 @@ int main()
 
 	CloseSocket(sock);
 
-	CloseNetwork();
 }
