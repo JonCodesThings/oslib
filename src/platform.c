@@ -5,12 +5,8 @@
 OSLIB_ALLOC Allocate = &malloc;
 OSLIB_DEALLOC Deallocate = &free;
 
-void OSLIB_SetAllocationFunction(OSLIB_ALLOC const alloc)
+void OSLIB_SetAllocator(OSLIB_ALLOC const alloc, OSLIB_DEALLOC const dealloc)
 {
 	Allocate = alloc;
-}
-
-void OSLIB_SetDeallocationFunction(OSLIB_DEALLOC  const dealloc)
-{
 	Deallocate = dealloc;
 }

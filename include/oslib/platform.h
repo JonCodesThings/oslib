@@ -9,10 +9,7 @@ typedef void (*OSLIB_DEALLOC)(void*);
 extern OSLIB_ALLOC Allocate;
 extern OSLIB_DEALLOC Deallocate;
 
-void OSLIB_SetAllocationFunction(OSLIB_ALLOC const alloc);
-
-void OSLIB_SetDeallocationFunction(OSLIB_DEALLOC const dealloc);
-
+void OSLIB_SetAllocator(OSLIB_ALLOC const alloc, OSLIB_DEALLOC const dealloc);
 
 //NOTE: @Jon
 //Specific typedefs for data type sizes for different compilers

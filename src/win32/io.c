@@ -167,7 +167,6 @@ i32 OSLIB_ReadBytesFromFile(const char *filepath, i8 *buffer, i32 bufferSize)
 	ReadFile(file, buffer, bufferSize, &bytes, NULL);
 	CloseHandle(file);
 
-
 	return fileSize;
 }
 
@@ -210,4 +209,11 @@ i32 OSLIB_AppendBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
 	CloseHandle(file);
 
 	return bytesWritten;
+}
+
+i32 OSLIB_DeleteFile(const char* filepath)
+{
+	DeleteFileA(filepath);
+
+	return 0;
 }
