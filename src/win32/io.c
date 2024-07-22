@@ -63,8 +63,9 @@ i32 OSLIB_GetDirectoryFileCount(const char *filepath)
 i32 OSLIB_GetDirectoryFileCountWithExtension(const char *filepath, const char *extension)
 {
 	size_t filepathLength = strlen(filepath);
+	size_t extensionLength = strlen(extension);
 
-	if (filepathLength > (MAX_PATH - 3))
+	if (filepathLength > (MAX_PATH - extensionLength))
 		return -1;
 
 	char *newFilepath = Allocate(sizeof(char) * MAX_PATH);
@@ -75,7 +76,6 @@ i32 OSLIB_GetDirectoryFileCountWithExtension(const char *filepath, const char *e
 
 	WIN32_FIND_DATA fd;
 	HANDLE hFind = FindFirstFile(newFilepath, &fd);
-	size_t extensionLength = strlen(extension);
 
 	i32 fileCount = 0;
 	do
@@ -87,8 +87,20 @@ i32 OSLIB_GetDirectoryFileCountWithExtension(const char *filepath, const char *e
 		else
 		{
 			size_t filenameLength = strlen(fd.cFileName);
+			size_t fileExtIter = 0;
 
-			if (!strcmp(&fd.cFileName[filenameLength - extensionLength], extension))
+			while (fileExtIter != filenameLength)
+			{
+				if (fd.cFileName[filenameLength - fileExtIter] == '.')
+					break;
+
+				fileExtIter++;
+			}
+
+			if (fileExtIter == filenameLength)
+				continue;
+
+			if (!strcmp(&fd.cFileName[filenameLength - fileExtIter], extension))
 				fileCount++;
 			
 		}
@@ -100,8 +112,9 @@ i32 OSLIB_GetDirectoryFileCountWithExtension(const char *filepath, const char *e
 const char ** OSLIB_GetFilesWithExtensionInDirectory(const char *filepath, const char *extension)
 {
 	size_t filepathLength = strlen(filepath);
+	size_t extensionLength = strlen(extension);
 
-	if (filepathLength > (MAX_PATH - 3))
+	if (filepathLength > (MAX_PATH - extensionLength))
 		return NULL;
 
 	i32 filesWithExtension = OSLIB_GetDirectoryFileCountWithExtension(filepath, extension);
@@ -116,7 +129,6 @@ const char ** OSLIB_GetFilesWithExtensionInDirectory(const char *filepath, const
 
 	WIN32_FIND_DATA fd;
 	HANDLE hFind = FindFirstFile(newFilepath, &fd);
-	size_t extensionLength = strlen(extension);
 
 	i32 fileCount = 0;
 
@@ -129,8 +141,17 @@ const char ** OSLIB_GetFilesWithExtensionInDirectory(const char *filepath, const
 		else
 		{
 			size_t filenameLength = strlen(fd.cFileName);
+			size_t fileExtIter = 0;
 
-			if (!strcmp(&fd.cFileName[filenameLength - extensionLength], extension))
+			while (fileExtIter != filenameLength)
+			{
+				if (fd.cFileName[filenameLength - fileExtIter] == '.')
+					break;
+
+				fileExtIter++;
+			}
+
+			if (!strcmp(&fd.cFileName[filenameLength - fileExtIter], extension))
 			{
 				char *filepathString = Allocate(sizeof(char) * (filepathLength + filenameLength) + 1);
 				memcpy(filepathString, filepath, sizeof(char) * filepathLength);
