@@ -8,7 +8,8 @@ int main()
 	const i32 bufferSize = 32;
 	i8 *buffer = malloc(sizeof(i8) * bufferSize);
 
-	OSLIB_ReadBytesFromFile("testio.txt", buffer, bufferSize);
+	if (OSLIB_ReadBytesFromFile("testio.txt", buffer, bufferSize) == -1)
+		return 1;
 
 	printf("%s\n", buffer);
 

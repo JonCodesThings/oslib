@@ -11,6 +11,12 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		src/win32/hot_reload.c
 		src/win32/io.c
 		src/win32/timer.c)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	set (SOURCE_FILES
+		src/platform.c
+		src/posix/hot_reload.c
+		src/posix/io.c
+		src/posix/timer.c)
 endif()
 
 set (OSLIB_IO_EXAMPLE_SOURCE_FILES sandbox/io/oslib_io.c)
@@ -20,6 +26,9 @@ set (OSLIB_HOT_RELOAD_EXMAPLE_DLL_SOURCE_FILES sandbox/hot_reload/testlib.c)
 
 add_library(oslib STATIC ${SOURCE_FILES})
 set_target_properties(oslib PROPERTIES PREFIX "")
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	target_link_libraries(oslib "dl")
+endif()
 
 add_executable(oslib_io ${OSLIB_IO_EXAMPLE_SOURCE_FILES})
 target_link_libraries(oslib_io oslib)
