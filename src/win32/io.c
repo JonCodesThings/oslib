@@ -222,7 +222,7 @@ i32 OSLIB_AppendBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
 
 	error = GetLastError();
 
-	u32 bytesWritten;
+	u32 bytesWritten = 0;
 	SetFilePointer(file, 0, NULL, FILE_END);
 	WriteFile(file, buffer, bufferSize, &bytesWritten, NULL);
 	error = GetLastError();
