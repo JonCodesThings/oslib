@@ -104,7 +104,7 @@ static void AppendQueryData(FSQueryData* const data, const char *name, const siz
 	FSQueryData* entry = data;
 	while (entry->next != NULL)
 	{
-		entry = data->next;
+		entry = entry->next;
 	}
 	FSQueryData *next = Allocate(sizeof(FSQueryData));
 	next->name = name;
@@ -279,7 +279,7 @@ static void DeallocateFSQueryDataNodes(FSQueryData* data)
 	} while (entry != NULL);
 }
 
-i32 OSLIB_GetFileSize(const char *filepath)
+i32 OSLIB_GetFileSize(const char *const filepath)
 {
 	HANDLE file = CreateFileA(filepath, GENERIC_READ, NULL, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_READONLY, NULL);
 

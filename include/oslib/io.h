@@ -11,7 +11,7 @@ i32 OSLIB_GetDirectorySubDirectoryCount(const char *path);
 
 i32 OSLIB_GetDirectoryFileCountWithExtension(const char *path, const char *extension);
 
-i32 OSLIB_GetFileSize(const char *filepath);
+i32 OSLIB_GetFileSize(const char *const filepath);
 
 i32 OSLIB_WriteBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize);
 
