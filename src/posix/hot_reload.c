@@ -59,25 +59,33 @@ i32 OSLIB_LoadLibrary(OSLIB_HotReloadLibrary *const lib)
 {
     lib->library = dlopen(lib->libraryFilename, RTLD_LAZY);
     if (lib->library != NULL)
+    {
         return 0;
-
-	return 1;
+    }
+    return 1;
 }
 
 i32 OSLIB_LoadFile(OSLIB_HotReloadFile *const file)
 {
-	i32 fs = OSLIB_GetFileSize(file->fileName);
+    i32 fs = OSLIB_GetFileSize(file->fileName);
 
     if (fs > (i32)file->bufferSize)
-		return fs;
-	else if (fs == -1)
-		return 0;
+    {
+	return fs;
+    }
 
-	OSLIB_ReadBytesFromFile(file->fileName, file->buffer, file->bufferSize);
-
-	if (fs != file->bufferSize)
-		return fs;
+    if (fs == -1)
+    {
 	return 0;
+    }
+
+    OSLIB_ReadBytesFromFile(file->fileName, (i8*)file->buffer, file->bufferSize);
+
+    if (fs != file->bufferSize)
+    {
+	return fs;
+    }
+    return 0;
 }
 
 void OSLIB_FreeLibrary(OSLIB_HotReloadLibrary *const lib)

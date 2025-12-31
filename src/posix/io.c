@@ -57,10 +57,6 @@ static i32 OSLIB_GetDirectoryFileCountMatchingCriteria(const char *path, const e
 
     if (d == NULL) return 0;
 
-    size_t patternLength = 0;
-    if (pattern)
-        patternLength = strlen(pattern);
-
     i32 retval = 0;
     it = readdir(d);
     while(it != NULL)
@@ -102,6 +98,7 @@ static i32 OSLIB_GetDirectoryFileCountMatchingCriteria(const char *path, const e
                 }
                 break;
             }
+	    default: break;
         }
         it = readdir(d);
     }
@@ -116,9 +113,6 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
     if (d == NULL) return NULL;
 
     size_t pathLen = strlen(path);
-    size_t patternLength = 0;
-    if (pattern)
-        patternLength = strlen(pattern);
 
     i32 filesMatching = OSLIB_GetDirectoryFileCountMatchingCriteria(path, criteria, pattern);
     u32 fileCount = 0;
@@ -137,7 +131,7 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
             case MatchCriteria_Extension:
             {
                 size_t itNameLen = strlen(it->d_name);
-		        size_t itExtIter = itNameLen;
+		size_t itExtIter = itNameLen;
 
                 while (itExtIter != 0)
 		        {
@@ -161,6 +155,7 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
                 }
                 break;
             }
+	    case MatchCriteria_Count: break;
         }
 
         if (nextFilename)
