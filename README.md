@@ -1,0 +1,1 @@
+oslib - a C98 library of common OS-independent utilities
