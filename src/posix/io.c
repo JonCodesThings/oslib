@@ -214,9 +214,9 @@ i32 OSLIB_WriteBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
 
 i32 OSLIB_AppendBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
 {
-    FILE * file = fopen(filepath , "wb");
+    FILE * file = fopen(filepath , "ab+");
     fseek ( file , 0 , SEEK_END );
-    i32 written = fwrite(buffer, 1, bufferSize, file);
+    i32 written = fwrite(buffer, bufferSize, 1, file);
     fclose ( file );
     return written;
 }
