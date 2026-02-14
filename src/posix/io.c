@@ -102,6 +102,7 @@ static i32 OSLIB_GetDirectoryFileCountMatchingCriteria(const char *path, const e
         }
         it = readdir(d);
     }
+    closedir(d);
     return retval;
 }
 
@@ -182,6 +183,7 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
 
         it = readdir(d);
     }
+    closedir(d);
     return filenames;
 }
 
