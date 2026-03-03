@@ -41,7 +41,10 @@ f32 OSLIB_TimerReset(OSLIB_Timer *timer)
 	if (gettimeofday (&now, NULL) == 0)
 	{
 		uint64_t diff = (now.tv_sec * 1000000 + now.tv_usec) - (timer->last.tv_sec * 1000000 + timer->last.tv_usec);
-		return diff * (1 / 1000000);
+		const f32 multiplier = 1.0f / 1000000;
+		f32 fdiff = diff * multiplier;
+		timer->last = now;
+		return fdiff;
 	}
 	return 0.0f;
 }
