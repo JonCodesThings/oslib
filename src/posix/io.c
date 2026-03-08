@@ -34,20 +34,18 @@ i32 OSLIB_ReadBytesFromFile(const char *filepath, i8 *buffer, i32 bufferSize)
         return -1;
     }
 
-    i32 fileSize = OSLIB_GetFileSize(filepath);
-
-    fread(buffer, 1, fileSize, file);
+    fread(buffer, 1, bufferSize, file);
     fclose(file);
 
-    return fileSize;
+    return bufferSize;
 }
 
 enum OSLIB_MatchCriteria
 {
-    MatchCriteria_None,
-    MatchCriteria_Extension,
-    MatchCriteria_IsDirectory,
-    MatchCriteria_Count
+    OSLIB_MatchCriteria_None,
+    OSLIB_MatchCriteria_Extension,
+    OSLIB_MatchCriteria_IsDirectory,
+    OSLIB_MatchCriteria_Count
 };
 
 static i32 OSLIB_GetDirectoryFileCountMatchingCriteria(const char *path, const enum OSLIB_MatchCriteria criteria, const char *pattern)
@@ -63,12 +61,12 @@ static i32 OSLIB_GetDirectoryFileCountMatchingCriteria(const char *path, const e
     {
         switch (criteria)
         {
-            case MatchCriteria_None:
+            case OSLIB_MatchCriteria_None:
             {
                 ++retval;
                 break;
             }
-            case MatchCriteria_Extension:
+            case OSLIB_MatchCriteria_Extension:
             {
                 size_t itNameLen = strlen(it->d_name);
 		        size_t itExtIter = itNameLen;
@@ -87,18 +85,20 @@ static i32 OSLIB_GetDirectoryFileCountMatchingCriteria(const char *path, const e
                 }
                 break;
             }
-            case MatchCriteria_IsDirectory:
+            case OSLIB_MatchCriteria_IsDirectory:
             {
-                if (it->d_type == DT_DIR)
+                if (it->d_type != DT_DIR)
                 {
-                    if (!(strlen(it->d_name) <= 2 && it->d_name[0] == '.'))
-                    {
-                        ++retval;
-                    }
+                    break;
+                }
+
+                if (!(strlen(it->d_name) <= 2 && it->d_name[0] == '.'))
+                {
+                    ++retval;
                 }
                 break;
             }
-	    default: break;
+	        default: break;
         }
         it = readdir(d);
     }
@@ -124,22 +124,20 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
         const char* nextFilename = NULL;
         switch (criteria)
         {
-            case MatchCriteria_None:
+            case OSLIB_MatchCriteria_None:
             {
                 nextFilename = it->d_name;
                 break;
             }
-            case MatchCriteria_Extension:
+            case OSLIB_MatchCriteria_Extension:
             {
                 size_t itNameLen = strlen(it->d_name);
-		size_t itExtIter = itNameLen;
+		        size_t itExtIter = itNameLen;
 
-                while (itExtIter != 0)
+                while (--itExtIter != 0)
 		        {
 			        if (it->d_name[itExtIter] == '.')
 				        break;
-
-			        itExtIter--;
 		        }
 
                 if (!strcmp(&it->d_name[itExtIter], pattern))
@@ -148,7 +146,7 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
                 }
                 break;
             }
-            case MatchCriteria_IsDirectory:
+            case OSLIB_MatchCriteria_IsDirectory:
             {
                 if (it->d_type == DT_DIR)
                 {
@@ -156,29 +154,28 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
                 }
                 break;
             }
-	    case MatchCriteria_Count: break;
+	        case OSLIB_MatchCriteria_Count: break;
         }
 
-        if (nextFilename)
+        if (!nextFilename) break;
+
+        i32 nextNameLength = strlen(nextFilename);
+        if (!(nextNameLength <= 2 && nextFilename[0] == '.'))
         {
-            i32 nextNameLength = strlen(nextFilename);
-            if (!(nextNameLength <= 2 && nextFilename[0] == '.'))
+            i32 fullPathLength = pathLen + nextNameLength;
+            i32 copiedIter = 0;
+            fullPathLength += criteria == OSLIB_MatchCriteria_IsDirectory ? 2 : 1;
+            char *filepathString = Allocate(sizeof(char) * fullPathLength);
+			memcpy(filepathString, path, sizeof(char) * pathLen);
+            copiedIter += pathLen;
+			memcpy(&filepathString[copiedIter], it->d_name, sizeof(char) * nextNameLength);
+            copiedIter += nextNameLength;
+            if (criteria == OSLIB_MatchCriteria_IsDirectory)
             {
-                i32 fullPathLength = pathLen + nextNameLength;
-                i32 copiedIter = 0;
-                fullPathLength += criteria == MatchCriteria_IsDirectory ? 2 : 1;
-                char *filepathString = Allocate(sizeof(char) * fullPathLength);
-			    memcpy(filepathString, path, sizeof(char) * pathLen);
-                copiedIter += pathLen;
-			    memcpy(&filepathString[copiedIter], it->d_name, sizeof(char) * nextNameLength);
-                copiedIter += nextNameLength;
-                if (criteria == MatchCriteria_IsDirectory)
-                {
-                    filepathString[copiedIter++] = '/';
-                }
-			    filepathString[copiedIter++] = '\0';
-			    filenames[fileCount++] = filepathString;
+                filepathString[copiedIter++] = '/';
             }
+			filepathString[copiedIter++] = '\0';
+			filenames[fileCount++] = filepathString;
         }
 
         it = readdir(d);
@@ -189,17 +186,17 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
 
 i32 OSLIB_GetDirectoryFileCount(const char *path)
 {
-    return OSLIB_GetDirectoryFileCountMatchingCriteria(path, MatchCriteria_None, NULL);
+    return OSLIB_GetDirectoryFileCountMatchingCriteria(path, OSLIB_MatchCriteria_None, NULL);
 }
 
 i32 OSLIB_GetDirectorySubDirectoryCount(const char *path)
 {
-    return OSLIB_GetDirectoryFileCountMatchingCriteria(path, MatchCriteria_IsDirectory, NULL);
+    return OSLIB_GetDirectoryFileCountMatchingCriteria(path, OSLIB_MatchCriteria_IsDirectory, NULL);
 }
 
 i32 OSLIB_GetDirectoryFileCountWithExtension(const char *path, const char *extension)
 {
-    return OSLIB_GetDirectoryFileCountMatchingCriteria(path, MatchCriteria_Extension, extension);
+    return OSLIB_GetDirectoryFileCountMatchingCriteria(path, OSLIB_MatchCriteria_Extension, extension);
 }
 
 i32 OSLIB_WriteBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
@@ -207,7 +204,10 @@ i32 OSLIB_WriteBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
     FILE *file = fopen(filepath, "wb");
 
     if (file == NULL)
+    {
+        printf("fopen error code: %d\n", errno);
         return -1;
+    }
     
     i32 written = fwrite(buffer, 1, bufferSize, file);
     fclose(file);
@@ -217,6 +217,13 @@ i32 OSLIB_WriteBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
 i32 OSLIB_AppendBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
 {
     FILE * file = fopen(filepath , "ab+");
+
+    if (file == NULL)
+    {
+        printf("fopen error code: %d\n", errno);
+        return -1;
+    }
+
     fseek ( file , 0 , SEEK_END );
     i32 written = fwrite(buffer, bufferSize, 1, file);
     fclose ( file );
@@ -225,12 +232,12 @@ i32 OSLIB_AppendBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
 
 const char ** OSLIB_GetFilesWithExtensionInDirectory(const char *path, const char *extension)
 {
-	return OSLIB_GetDirectoryStringsMatchingCriteria(path, MatchCriteria_Extension, extension);
+	return OSLIB_GetDirectoryStringsMatchingCriteria(path, OSLIB_MatchCriteria_Extension, extension);
 }
 
 const char ** OSLIB_GetSubDirectoriesForDirectory(const char *path)
 {
-    return OSLIB_GetDirectoryStringsMatchingCriteria(path, MatchCriteria_IsDirectory, NULL);
+    return OSLIB_GetDirectoryStringsMatchingCriteria(path, OSLIB_MatchCriteria_IsDirectory, NULL);
 }
 
 i32 OSLIB_DeleteFile(const char *filepath)
