@@ -117,7 +117,7 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
 
     i32 filesMatching = OSLIB_GetDirectoryFileCountMatchingCriteria(path, criteria, pattern);
     u32 fileCount = 0;
-    const char **filenames = Allocate(sizeof(char*) * filesMatching);
+    const char **filenames = OSLIB_Allocate(sizeof(char*) * filesMatching);
     it = readdir(d);
     while(it != NULL)
     {
@@ -165,7 +165,7 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
             i32 fullPathLength = pathLen + nextNameLength;
             i32 copiedIter = 0;
             fullPathLength += criteria == OSLIB_MatchCriteria_IsDirectory ? 2 : 1;
-            char *filepathString = Allocate(sizeof(char) * fullPathLength);
+            char *filepathString = OSLIB_Allocate(sizeof(char) * fullPathLength);
 			memcpy(filepathString, path, sizeof(char) * pathLen);
             copiedIter += pathLen;
 			memcpy(&filepathString[copiedIter], it->d_name, sizeof(char) * nextNameLength);

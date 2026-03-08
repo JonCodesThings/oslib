@@ -11,24 +11,34 @@ typedef struct OSLIB_Timer
 
 OSLIB_Timer *OSLIB_AllocateTimer()
 {
-	OSLIB_Timer *timer = Allocate(sizeof(OSLIB_Timer));
-
+	OSLIB_Timer *timer = OSLIB_Allocate(sizeof(OSLIB_Timer));
 	return timer;
 }
 
 void OSLIB_DeallocateTimer(OSLIB_Timer *timer)
 {
-	if (timer != NULL)
+	if (timer == NULL)
 	{
-		Deallocate(timer);
-		timer = NULL;
+		return;
 	}
+
+	OSLIB_Deallocate(timer);
+	timer = NULL;
 }
 
 void OSLIB_TimerStart(OSLIB_Timer *timer)
 {
+	if (timer == NULL)
+	{
+		return;
+	}
+
 	gettimeofday(&timer->last, NULL);
 }
+
+
+static const uint64_t s_Multiplier = 1000000;
+static const f32 s_Converter = 1.0f / s_Multiplier;;
 
 f32 OSLIB_TimerReset(OSLIB_Timer *timer)
 {
@@ -38,13 +48,13 @@ f32 OSLIB_TimerReset(OSLIB_Timer *timer)
 	}
 
 	struct timeval now;
-	if (gettimeofday (&now, NULL) == 0)
+	if (gettimeofday (&now, NULL) != 0)
 	{
-		uint64_t diff = (now.tv_sec * 1000000 + now.tv_usec) - (timer->last.tv_sec * 1000000 + timer->last.tv_usec);
-		const f32 multiplier = 1.0f / 1000000;
-		f32 fdiff = diff * multiplier;
-		timer->last = now;
-		return fdiff;
+		return 0.0f;
 	}
-	return 0.0f;
+
+	uint64_t diff = (now.tv_sec * s_Multiplier + now.tv_usec) - (timer->last.tv_sec * s_Multiplier + timer->last.tv_usec);
+	f32 fdiff = diff * s_Converter;
+	timer->last = now;
+	return fdiff;
 }

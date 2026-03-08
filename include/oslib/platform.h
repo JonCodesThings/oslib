@@ -10,8 +10,8 @@
 typedef void* (*OSLIB_ALLOC)(size_t size);
 typedef void (*OSLIB_DEALLOC)(void* ptr);
 
-extern OSLIB_ALLOC Allocate;
-extern OSLIB_DEALLOC Deallocate;
+extern OSLIB_ALLOC OSLIB_Allocate;
+extern OSLIB_DEALLOC OSLIB_Deallocate;
 
 void OSLIB_SetAllocator(OSLIB_ALLOC const alloc, OSLIB_DEALLOC const dealloc);
 

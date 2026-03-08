@@ -28,7 +28,7 @@ typedef struct OSLIB_HotReloadFile
 
 OSLIB_HotReloadLibrary * OSLIB_CreateHotReloadLibrary(const char *libraryFilename)
 {
-	OSLIB_HotReloadLibrary *alloc = Allocate(sizeof(OSLIB_HotReloadLibrary));
+	OSLIB_HotReloadLibrary *alloc = OSLIB_Allocate(sizeof(OSLIB_HotReloadLibrary));
 
 	alloc->libraryFilename = libraryFilename;
 
@@ -37,7 +37,7 @@ OSLIB_HotReloadLibrary * OSLIB_CreateHotReloadLibrary(const char *libraryFilenam
 
 OSLIB_HotReloadFile * OSLIB_CreteHotReloadFile(const char *filename, u8 *fileBuffer, u32 fileBufferSize)
 {
-	OSLIB_HotReloadFile *alloc = Allocate(sizeof(OSLIB_HotReloadFile));
+	OSLIB_HotReloadFile *alloc = OSLIB_Allocate(sizeof(OSLIB_HotReloadFile));
 
 	alloc->fileName = filename;
 	alloc->buffer = fileBuffer;
@@ -48,12 +48,12 @@ OSLIB_HotReloadFile * OSLIB_CreteHotReloadFile(const char *filename, u8 *fileBuf
 
 void OSLIB_FreeHotReloadLibrary(OSLIB_HotReloadLibrary *const lib)
 {
-	Deallocate(lib);
+	OSLIB_Deallocate(lib);
 }
 
 void OSLIB_FreeHotReloadFile(OSLIB_HotReloadFile *const file)
 {
-	Deallocate(file);
+	OSLIB_Deallocate(file);
 }
 
 i32 OSLIB_LoadLibrary(OSLIB_HotReloadLibrary *const lib)

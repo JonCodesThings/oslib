@@ -3,7 +3,7 @@
 
 #include <include/oslib/platform.h>
 
-struct OSLIB_Timer;
+typedef struct OSLIB_Timer OSLIB_Timer;
 
 OSLIB_Timer *OSLIB_AllocateTimer();
 
