@@ -38,7 +38,7 @@ void OSLIB_TimerStart(OSLIB_Timer *timer)
 
 
 static const uint64_t s_Multiplier = 1000000;
-static const f32 s_Converter = 1.0f / s_Multiplier;;
+static const f32 s_Converter = 1.0f / s_Multiplier;
 
 f32 OSLIB_TimerReset(OSLIB_Timer *timer)
 {
@@ -53,8 +53,8 @@ f32 OSLIB_TimerReset(OSLIB_Timer *timer)
 		return 0.0f;
 	}
 
-	uint64_t diff = (now.tv_sec * s_Multiplier + now.tv_usec) - (timer->last.tv_sec * s_Multiplier + timer->last.tv_usec);
-	f32 fdiff = diff * s_Converter;
+	const uint64_t diff = (now.tv_sec * s_Multiplier + now.tv_usec) - (timer->last.tv_sec * s_Multiplier + timer->last.tv_usec);
+	const f32 fdiff = (f32)diff * s_Converter;
 	timer->last = now;
 	return fdiff;
 }
