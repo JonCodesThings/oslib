@@ -1,9 +1,10 @@
+#ifndef NULL
 #define NULL 0
+#endif
 
 #include <stdio.h>
 
 #include <dlfcn.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 
 #include <include/oslib/platform.h>
@@ -21,8 +22,8 @@ typedef struct OSLIB_HotReloadFile
 {
     time_t lastWrite;
 	const char *fileName;
-	u8 *buffer;
-	u32 bufferSize;
+	i8 *buffer;
+	i32 bufferSize;
 } OSLIB_HotReloadFile;
 
 OSLIB_HotReloadLibrary * OSLIB_CreateHotReloadLibrary(const char *libraryFilename)
@@ -69,22 +70,23 @@ i32 OSLIB_LoadFile(OSLIB_HotReloadFile *const file)
 {
     i32 fs = OSLIB_GetFileSize(file->fileName);
 
-    if (fs > (i32)file->bufferSize)
+    if (fs > file->bufferSize)
     {
-	return fs;
+		return fs;
     }
 
     if (fs == -1)
     {
-	return 0;
+		return 0;
     }
 
     OSLIB_ReadBytesFromFile(file->fileName, (i8*)file->buffer, file->bufferSize);
 
     if (fs != file->bufferSize)
     {
-	return fs;
+		return fs;
     }
+
     return 0;
 }
 
@@ -95,10 +97,7 @@ void OSLIB_FreeLibrary(OSLIB_HotReloadLibrary *const lib)
 
 void *OSLIB_GetFunctionPointer(OSLIB_HotReloadLibrary *const lib, const char *functionName)
 {
-	if (lib == NULL)
-		return NULL;
-
-	if (lib->library == NULL)
+	if (lib == NULL || lib->library == NULL)
 		return NULL;
 
     return dlsym(lib->library, functionName);
