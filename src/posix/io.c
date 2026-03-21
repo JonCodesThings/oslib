@@ -69,7 +69,7 @@ static i32 OSLIB_GetDirectoryFileCountMatchingCriteria(const char *path, const e
             case OSLIB_MatchCriteria_Extension:
             {
                 size_t itNameLen = strlen(it->d_name);
-		        size_t itExtIter = itNameLen;
+		size_t itExtIter = itNameLen;
 
                 while (itExtIter != 0)
 		        {
@@ -157,7 +157,11 @@ static const char ** OSLIB_GetDirectoryStringsMatchingCriteria(const char *path,
 	        case OSLIB_MatchCriteria_Count: break;
         }
 
-        if (!nextFilename) break;
+        if (!nextFilename) 
+	{
+	    it = readdir(d);
+	    continue;
+	}
 
         i32 nextNameLength = strlen(nextFilename);
         if (!(nextNameLength <= 2 && nextFilename[0] == '.'))
@@ -232,7 +236,7 @@ i32 OSLIB_AppendBytesToFile(const char *filepath, i8 *buffer, i32 bufferSize)
 
 const char ** OSLIB_GetFilesWithExtensionInDirectory(const char *path, const char *extension)
 {
-	return OSLIB_GetDirectoryStringsMatchingCriteria(path, OSLIB_MatchCriteria_Extension, extension);
+    return OSLIB_GetDirectoryStringsMatchingCriteria(path, OSLIB_MatchCriteria_Extension, extension);
 }
 
 const char ** OSLIB_GetSubDirectoriesForDirectory(const char *path)
